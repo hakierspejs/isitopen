@@ -2,30 +2,30 @@
 
 import logging
 import time
+import asyncio
 
 import requests
-import irc.client
+import nio
+
+
+async def sendmsg(msg) -> None:
+    client = nio.AsyncClient("https://matrix.org", "@d33tah-bot1:matrix.org")
+
+    await client.login(open('haslo.txt').read().strip())
+
+    result = await client.room_send(
+        room_id=open('room_id.txt').read().strip(),
+        message_type="m.room.message",
+        content={
+            "msgtype": "m.text",
+            "body": msg,
+        }
+    )
+    logging.info('sent notification(msg=%r) => %s', msg, result)
 
 
 def notify(msg):
-    client = irc.client.Reactor()
-    server = client.server()
-    server.connect("irc.freenode.net", 6667, "hsldzat")
-
-    def on_connect(connection, event):
-        connection.join("#hakierspejs")
-
-    def on_join(connection, event):
-        connection.privmsg("#hakierspejs", msg)
-        connection.quit()
-        raise RuntimeError()
-
-    client.add_global_handler("welcome", on_connect)
-    client.add_global_handler("join", on_join)
-    try:
-        client.process_forever()
-    except RuntimeError:
-        pass
+    asyncio.get_event_loop().run_until_complete(sendmsg(msg))
 
 
 def isitopen():
@@ -47,10 +47,11 @@ def is_status_stable(nowisopen, num_checks):
 
 
 def main():
-    isopen = isitopen()
+    isopen = False
     while True:
-        time.sleep(600)
+        time.sleep(60)
         nowisopen = isitopen()
+        logging.debug('nowisopen=%s, isopen=%s', nowisopen, isopen)
         if nowisopen and not isopen:
             if is_status_stable(nowisopen, num_checks=1):
                 notify("Spejs jest otwarty! Więcej info: https://at.hs-ldz.pl")

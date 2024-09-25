@@ -1,5 +1,7 @@
-version: '3.8'
+version: '3.3'
 services:
     isitopen:
         build: .
         restart: unless-stopped
+        labels:
+            - "traefik.enable=false"
